@@ -95,10 +95,10 @@ export function analyzeUsername(username: string): AnalysisResult {
   });
 
   const breach: BreachExposure = {
-    email_found: Math.random() > 0.4,
-    location_exposed: Math.random() > 0.5,
-    password_leaked: Math.random() > 0.6,
-    phone_exposed: Math.random() > 0.55,
+    email_found: Math.random() > 0.35,
+    location_exposed: Math.random() > 0.4,
+    password_leaked: Math.random() > 0.45,
+    phone_exposed: Math.random() > 0.4,
   };
 
   // Risk score
