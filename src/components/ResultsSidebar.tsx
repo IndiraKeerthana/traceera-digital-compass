@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, AlertTriangle, Shield, Info } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Shield, Info, Mail } from "lucide-react";
 import type { AnalysisResult } from "@/lib/analyzer";
 
 interface ResultsSidebarProps {
@@ -28,6 +28,20 @@ const ResultsSidebar = ({ result }: ResultsSidebarProps) => {
         </div>
       </Section>
 
+      {/* Discovered Emails */}
+      {result.discovered_emails.length > 0 && (
+        <Section title={`Discovered Emails (${result.discovered_emails.length})`}>
+          <div className="space-y-1">
+            {result.discovered_emails.map((email) => (
+              <div key={email} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-secondary/50">
+                <Mail className="h-3 w-3 text-accent shrink-0" />
+                <span className="text-xs font-mono text-foreground">{email}</span>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {/* Matched Platforms */}
       <Section title={`Matched Platforms (${matched.length})`}>
         <div className="space-y-2">
@@ -40,6 +54,12 @@ const ResultsSidebar = ({ result }: ResultsSidebarProps) => {
                   <span className="text-[10px] font-mono text-primary">{p.confidence}%</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground truncate">{p.metadata}</p>
+                {p.email_found && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Mail className="h-2.5 w-2.5 text-accent" />
+                    <span className="text-[10px] font-mono text-accent">{p.email_found}</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
