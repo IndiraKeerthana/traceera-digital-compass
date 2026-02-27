@@ -4,6 +4,7 @@ export interface Platform {
   confidence: number;
   metadata: string;
   icon: string;
+  email_found?: string;
 }
 
 export interface BreachExposure {
@@ -43,6 +44,7 @@ export interface AnalysisResult {
   breach: BreachExposure;
   vulnerabilities: Vulnerability[];
   remediation: string[];
+  discovered_emails: string[];
 }
 
 const PLATFORM_CONFIG = [
@@ -80,17 +82,26 @@ function generateMeta(templates: string[]): string {
     .replace("{m}", String(rand(50, 5000)));
 }
 
+const EMAIL_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "protonmail.com", "hotmail.com"];
+
 export function analyzeUsername(username: string): AnalysisResult {
   const variations = generateVariations(username);
+  const base = username.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   const platforms: Platform[] = PLATFORM_CONFIG.map((p) => {
     const matched = Math.random() > 0.35;
+    // Some platforms may expose an email
+    const canExposeEmail = ["GitHub", "LinkedIn", "Facebook", "Medium", "Reddit"].includes(p.name);
+    const emailDiscovered = matched && canExposeEmail && Math.random() > 0.5
+      ? `${base}@${EMAIL_DOMAINS[rand(0, EMAIL_DOMAINS.length - 1)]}`
+      : undefined;
     return {
       name: p.name,
       matched,
       confidence: matched ? rand(60, 95) : 0,
       metadata: matched ? generateMeta(p.metaTemplates) : "",
       icon: p.icon,
+      email_found: emailDiscovered,
     };
   });
 
@@ -156,5 +167,7 @@ export function analyzeUsername(username: string): AnalysisResult {
   remediation.push("Regularly audit your digital footprint using privacy tools.");
   remediation.push("Enable login notifications on all critical accounts.");
 
-  return { username, variations, nodes, links, risk_score: risk, platforms, breach, vulnerabilities: vulns, remediation };
+  const discovered_emails = [...new Set(platforms.filter(p => p.email_found).map(p => p.email_found!))];
+
+  return { username, variations, nodes, links, risk_score: risk, platforms, breach, vulnerabilities: vulns, remediation, discovered_emails };
 }
