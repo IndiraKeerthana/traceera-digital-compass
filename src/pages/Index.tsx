@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
 import SearchInput from "@/components/SearchInput";
 import NetworkGraph from "@/components/NetworkGraph";
 import RiskScore from "@/components/RiskScore";
@@ -10,102 +10,111 @@ const Index = () => {
   const [result, setResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleAnalyze = async (data: {
-    username: string;
-    name?: string;
-    email?: string;
-  }) => {
-    setIsLoading(true);
-    setResult(null);
+  const handleAnalyze = useCallback(
+    async ({
+      username,
+      name,
+      email,
+    }: {
+      username: string;
+      name?: string;
+      email?: string;
+    }) => {
+      setIsLoading(true);
+      setResult(null);
 
-    try {
-      const response = await fetch("http://localhost:8000/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-      });
+      try {
+        const response = await fetch("http://localhost:8000/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            name,
+            email,
+          }),
+        });
 
-      const resData = await response.json();
+        const resData = await response.json();
 
-      if (response.ok) {
+        if (!response.ok) {
+          alert("Backend error");
+          setIsLoading(false);
+          return;
+        }
+
         setResult({
           username: resData.username,
           nodes: resData.nodes,
           links: resData.links,
           riskScore: resData.risk_score,
           riskLevel: resData.risk_level,
-          details: resData.platforms
+          details: resData.platforms,
+          exposure: resData.exposure,
         });
-      } else {
-        alert("Analysis failed.");
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Backend not reachable:", error);
+        alert("TraceEra backend is not running.");
+        setIsLoading(false);
       }
-
-    } catch (error) {
-      console.error("Backend connection error:", error);
-      alert("Backend not running on port 8000.");
-    }
-
-    setIsLoading(false);
-  };
+    },
+    []
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#1e293b] text-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0c] text-white flex flex-col">
+      {/* Header Area */}
+      <div className="w-full pt-16 pb-10 transition-all duration-500">
+        <div className="max-w-5xl mx-auto px-6 text-center">
 
-      {/* Soft Background Glow */}
-      <div className="absolute top-[-150px] left-[-150px] w-[400px] h-[400px] bg-purple-500/10 blur-3xl rounded-full" />
-      <div className="absolute bottom-[-150px] right-[-150px] w-[400px] h-[400px] bg-blue-500/10 blur-3xl rounded-full" />
-
-      <div className="relative z-10 flex flex-col min-h-screen">
-
-        {/* Top Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className={`w-full transition-all duration-700 ${
-            result ? "pt-8 pb-6" : "pt-[18vh] pb-12"
-          }`}
-        >
-          <div className="max-w-5xl mx-auto px-6 text-center">
-            <div className="mb-8">
-  <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-    TraceEra
-  </h1>
-  <p className="text-gray-400 text-sm mt-2 tracking-wide">
-    Digital Footprint Intelligence Engine
-  </p>
-</div>
-
-            <SearchInput onAnalyze={handleAnalyze} isLoading={isLoading} />
+          {/* App Title (Always Visible) */}
+          <div className="mb-10">
+            <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              TraceEra
+            </h1>
+            <p className="text-gray-400 text-sm mt-3 tracking-wide">
+              Digital Footprint Intelligence Engine
+            </p>
           </div>
-        </motion.div>
 
-        {/* Loading */}
-        {isLoading && <LoadingAnimation />}
-
-        {/* Dashboard */}
-        {result && !isLoading && (
-          <div className="flex-1 max-w-7xl mx-auto px-6 pb-12 w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-              {/* Left Column */}
-              <div className="lg:col-span-5 flex flex-col gap-6">
-                <NetworkGraph nodes={result.nodes} links={result.links} />
-                <RiskScore result={result} />
-              </div>
-
-              {/* Right Column */}
-              <div className="lg:col-span-7">
-                <ResultsSidebar result={result} />
-              </div>
-
-            </div>
-          </div>
-        )}
-
+          {/* Search Input */}
+          <SearchInput
+            onAnalyze={handleAnalyze}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
+
+      {/* Loading Animation */}
+      <AnimatePresence>
+        {isLoading && <LoadingAnimation />}
+      </AnimatePresence>
+
+      {/* Dashboard */}
+      {result && !isLoading && (
+        <div className="flex-1 max-w-7xl mx-auto px-6 pb-16 w-full animate-in fade-in zoom-in-95 duration-500">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            {/* Left Column */}
+            <div className="lg:col-span-5 flex flex-col gap-8">
+              <NetworkGraph
+                nodes={result.nodes}
+                links={result.links}
+              />
+              <RiskScore result={result} />
+            </div>
+
+            {/* Right Column */}
+            <div className="lg:col-span-7">
+              <ResultsSidebar result={result} />
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

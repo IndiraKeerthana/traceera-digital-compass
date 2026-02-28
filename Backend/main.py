@@ -17,7 +17,7 @@ app.add_middleware(
 )
 
 # --------------------------------------------------
-# Major Social Media Platforms (Manual Check)
+# Major Social Media Platforms
 # --------------------------------------------------
 COMMON_PLATFORMS = {
     "Instagram": "https://www.instagram.com/{username}/",
@@ -30,12 +30,12 @@ COMMON_PLATFORMS = {
 
 
 # --------------------------------------------------
-# Risk Score Logic
+# Risk Calculation
 # --------------------------------------------------
 def compute_risk(platform_count, github_data, name, email):
     score = 0
 
-    # Platform exposure weight
+    # Platform exposure
     if platform_count >= 8:
         score += 60
     elif platform_count >= 5:
@@ -45,7 +45,7 @@ def compute_risk(platform_count, github_data, name, email):
     elif platform_count >= 1:
         score += 15
 
-    # GitHub enrichment
+    # GitHub exposure
     if github_data.get("exists"):
         score += 15
 
@@ -60,7 +60,7 @@ def compute_risk(platform_count, github_data, name, email):
         if followers > 100:
             score += 10
 
-    # Increase risk if name or email provided
+    # Identity correlation
     if name:
         score += 5
 
@@ -88,7 +88,6 @@ def check_github(username):
                 "public_repos": data.get("public_repos", 0),
                 "profile_url": data.get("html_url")
             }
-
     except:
         pass
 
@@ -145,7 +144,6 @@ def run_sherlock(username):
                 site for site, info in data.items()
                 if info.get("status") == "claimed"
             ]
-
     except:
         pass
 
@@ -165,16 +163,16 @@ def analyze(payload: dict):
     if not username:
         return {"error": "Username required"}
 
-    # 1️⃣ Sherlock scan
+    # 1️⃣ Sherlock
     sherlock_platforms = run_sherlock(username)
 
-    # 2️⃣ Manual major platforms
+    # 2️⃣ Manual checks
     http_platforms = check_common_platforms(username)
 
-    # 3️⃣ GitHub enrichment
+    # 3️⃣ GitHub
     github_data = check_github(username)
 
-    # Merge all platforms
+    # Merge platforms
     platforms_found = list(set(sherlock_platforms + http_platforms))
 
     if github_data.get("exists"):
@@ -183,13 +181,12 @@ def analyze(payload: dict):
     platforms_found = list(set(platforms_found))
 
     # --------------------------------------------------
-    # Build Graph Nodes
+    # Graph Nodes
     # --------------------------------------------------
     nodes = [
         {"id": "identity", "label": username, "type": "identity"}
     ]
 
-    # Add Name Node
     if name:
         nodes.append({
             "id": "name",
@@ -197,7 +194,6 @@ def analyze(payload: dict):
             "type": "attribute"
         })
 
-    # Add Email Node
     if email:
         nodes.append({
             "id": "email",
@@ -205,7 +201,6 @@ def analyze(payload: dict):
             "type": "attribute"
         })
 
-    # Add Platform Nodes
     for platform in platforms_found:
         nodes.append({
             "id": platform.lower().replace(" ", ""),
@@ -214,11 +209,10 @@ def analyze(payload: dict):
         })
 
     # --------------------------------------------------
-    # Build Graph Links
+    # Graph Links
     # --------------------------------------------------
     links = []
 
-    # Link platforms to identity
     for platform in platforms_found:
         links.append({
             "source": "identity",
@@ -226,7 +220,6 @@ def analyze(payload: dict):
             "strength": 0.8
         })
 
-    # Link name
     if name:
         links.append({
             "source": "identity",
@@ -234,7 +227,6 @@ def analyze(payload: dict):
             "strength": 0.9
         })
 
-    # Link email
     if email:
         links.append({
             "source": "identity",
@@ -243,9 +235,41 @@ def analyze(payload: dict):
         })
 
     # --------------------------------------------------
+    # Exposure Simulation
+    # --------------------------------------------------
+    exposure = {
+        "email_exposed": False,
+        "location_exposed": False,
+        "phone_exposed": False,
+        "password_leaked": False,
+        "personal_details_exposed": False
+    }
+
+    if email:
+        exposure["email_exposed"] = True
+        exposure["personal_details_exposed"] = True
+
+    if len(platforms_found) > 5:
+        exposure["location_exposed"] = True
+
+    if len(platforms_found) > 8:
+        exposure["phone_exposed"] = True
+
+    if github_data.get("exists") and github_data.get("public_repos", 0) > 15:
+        exposure["password_leaked"] = True
+
+    # --------------------------------------------------
     # Risk Score
     # --------------------------------------------------
     risk_score = compute_risk(len(platforms_found), github_data, name, email)
+
+    if exposure["password_leaked"]:
+        risk_score += 20
+
+    if exposure["phone_exposed"]:
+        risk_score += 10
+
+    risk_score = min(risk_score, 100)
 
     if risk_score >= 60:
         risk_level = "High"
@@ -270,5 +294,6 @@ def analyze(payload: dict):
                 "confidence": 80
             }
             for platform in platforms_found
-        ]
+        ],
+        "exposure": exposure
     }
