@@ -1,118 +1,117 @@
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, AlertTriangle, Shield, Info, Mail } from "lucide-react";
-import type { AnalysisResult } from "@/lib/analyzer";
+import { ExternalLink, ShieldAlert } from "lucide-react";
 
-interface ResultsSidebarProps {
-  result: AnalysisResult;
-}
+const ResultsSidebar = ({ result }: { result: any }) => {
+  if (!result) return null;
 
-const ResultsSidebar = ({ result }: ResultsSidebarProps) => {
-  const matched = result.platforms.filter((p) => p.matched);
-  const unmatched = result.platforms.filter((p) => !p.matched);
+  const platforms = result.details || [];
+  const exposure = result.exposure || {};
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
-      className="flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-1"
+      className="rounded-2xl p-6 bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl flex flex-col h-full"
     >
-      {/* Variations */}
-      <Section title="Username Variations">
-        <div className="flex flex-wrap gap-1.5">
-          {result.variations.map((v) => (
-            <span key={v} className="px-2 py-0.5 rounded-md bg-secondary text-secondary-foreground text-xs font-mono">
-              {v}
-            </span>
-          ))}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-2">
+            Intelligence Feed
+          </h3>
+          <p className="text-sm font-bold text-white">
+            Target: {result.username}
+          </p>
         </div>
-      </Section>
+        <ShieldAlert className="h-5 w-5 text-gray-400 opacity-70" />
+      </div>
 
-      {/* Discovered Emails */}
-      {result.discovered_emails.length > 0 && (
-        <Section title={`Discovered Emails (${result.discovered_emails.length})`}>
-          <div className="space-y-1">
-            {result.discovered_emails.map((email) => (
-              <div key={email} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-secondary/50">
-                <Mail className="h-3 w-3 text-accent shrink-0" />
-                <span className="text-xs font-mono text-foreground">{email}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Matched Platforms */}
-      <Section title={`Matched Platforms (${matched.length})`}>
-        <div className="space-y-2">
-          {matched.map((p) => (
-            <div key={p.name} className="flex items-start gap-2 p-2 rounded-lg bg-secondary/50">
-              <CheckCircle className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-foreground">{p.name}</span>
-                  <span className="text-[10px] font-mono text-primary">{p.confidence}%</span>
+      {/* Platform Section */}
+      <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+        {platforms.length > 0 ? (
+          platforms.map((item: any, i: number) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Confidence: {item.confidence || 80}%
+                  </p>
                 </div>
-                <p className="text-[11px] text-muted-foreground truncate">{p.metadata}</p>
-                {p.email_found && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Mail className="h-2.5 w-2.5 text-accent" />
-                    <span className="text-[10px] font-mono text-accent">{p.email_found}</span>
-                  </div>
-                )}
+
+                <a
+                  href={`https://${item.name.toLowerCase()}.com/${result.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4 text-gray-400" />
+                </a>
               </div>
-            </div>
-          ))}
-          {unmatched.length > 0 && (
-            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 pt-1">
-              <XCircle className="h-3 w-3" />
-              No match: {unmatched.map((p) => p.name).join(", ")}
-            </div>
+            </motion.div>
+          ))
+        ) : (
+          <p className="text-sm text-gray-400 italic">
+            No platforms detected.
+          </p>
+        )}
+      </div>
+
+      {/* Exposure Section */}
+      <div className="mt-6 pt-6 border-t border-white/10">
+        <h4 className="text-xs uppercase tracking-widest text-gray-400 mb-4">
+          Exposure Analysis
+        </h4>
+
+        <div className="space-y-2 text-sm">
+
+          {exposure.email_exposed && (
+            <p className="text-amber-300">
+              📧 Email publicly linked
+            </p>
+          )}
+
+          {exposure.location_exposed && (
+            <p className="text-amber-300">
+              📍 Location data inferred
+            </p>
+          )}
+
+          {exposure.phone_exposed && (
+            <p className="text-rose-400">
+              📱 Phone number exposure risk
+            </p>
+          )}
+
+          {exposure.password_leaked && (
+            <p className="text-red-400">
+              🔐 Password potentially leaked
+            </p>
+          )}
+
+          {exposure.personal_details_exposed && (
+            <p className="text-amber-300">
+              👤 Personal details correlation detected
+            </p>
+          )}
+
+          {!Object.values(exposure).some(Boolean) && (
+            <p className="text-green-400">
+              No critical exposure detected
+            </p>
           )}
         </div>
-      </Section>
-
-      {/* Vulnerabilities */}
-      <Section title="Vulnerabilities">
-        <div className="space-y-2">
-          {result.vulnerabilities.map((v, i) => (
-            <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-secondary/50">
-              {v.severity === "high" ? (
-                <AlertTriangle className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
-              ) : v.severity === "medium" ? (
-                <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
-              ) : (
-                <Info className="h-3.5 w-3.5 text-soft-blue mt-0.5 shrink-0" />
-              )}
-              <div>
-                <span className="text-xs font-medium text-foreground">{v.title}</span>
-                <p className="text-[11px] text-muted-foreground">{v.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Remediation */}
-      <Section title="Remediation Steps">
-        <div className="space-y-1.5">
-          {result.remediation.map((r, i) => (
-            <div key={i} className="flex items-start gap-2 text-[11px]">
-              <Shield className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-              <span className="text-muted-foreground">{r}</span>
-            </div>
-          ))}
-        </div>
-      </Section>
+      </div>
     </motion.div>
   );
 };
-
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="glass-card rounded-xl p-4">
-    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">{title}</h3>
-    {children}
-  </div>
-);
 
 export default ResultsSidebar;

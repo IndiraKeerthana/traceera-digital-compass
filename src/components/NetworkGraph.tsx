@@ -1,122 +1,127 @@
 import { motion } from "framer-motion";
 import { useMemo } from "react";
-import type { GraphNode, GraphLink } from "@/lib/analyzer";
 
-interface NetworkGraphProps {
-  nodes: GraphNode[];
-  links: GraphLink[];
-}
+const NetworkGraph = ({ nodes = [], links = [] }: any) => {
 
-const NetworkGraph = ({ nodes, links }: NetworkGraphProps) => {
   const positions = useMemo(() => {
     const pos: Record<string, { x: number; y: number }> = {};
     const centerX = 250;
     const centerY = 200;
 
-    // Identity at center
-    pos["identity"] = { x: centerX, y: centerY };
+    if (!nodes || nodes.length === 0) return pos;
 
-    // Platforms in a circle
-    const platformNodes = nodes.filter((n) => n.type === "platform");
-    const breachNode = nodes.find((n) => n.type === "breach");
+    // Identity node (center)
+    const identityNode = nodes.find((n: any) => n.type === "identity");
+    if (identityNode) {
+      pos[identityNode.id] = { x: centerX, y: centerY };
+    }
 
-    platformNodes.forEach((node, i) => {
-      const angle = (2 * Math.PI * i) / platformNodes.length - Math.PI / 2;
-      const radius = 140;
+    // Platform nodes (circular around identity)
+    const platformNodes = nodes.filter((n: any) => n.type === "platform");
+
+    platformNodes.forEach((node: any, i: number) => {
+      const angle =
+        (2 * Math.PI * i) / platformNodes.length - Math.PI / 2;
+      const radius = 130;
+
       pos[node.id] = {
         x: centerX + Math.cos(angle) * radius,
         y: centerY + Math.sin(angle) * radius,
       };
     });
 
-    if (breachNode) {
-      pos[breachNode.id] = { x: centerX, y: centerY + 155 };
-    }
+    // Attribute nodes (below identity)
+    const attributeNodes = nodes.filter((n: any) => n.type === "attribute");
+
+    attributeNodes.forEach((node: any, i: number) => {
+      pos[node.id] = {
+        x: centerX + (i % 2 === 0 ? -100 : 100),
+        y: centerY + 140,
+      };
+    });
 
     return pos;
   }, [nodes]);
+
+  if (!nodes || nodes.length === 0) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.6, delay: 0.3 }}
-      className="glass-card rounded-xl p-4 overflow-hidden"
+      className="rounded-2xl p-6 bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl"
     >
-      <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3 px-2">
-        Identity Graph
+      <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-4">
+        Identity Correlation Map
       </h3>
+
       <svg viewBox="0 0 500 400" className="w-full h-auto">
+
         {/* Links */}
-        {links.map((link, i) => {
+        {links.map((link: any, i: number) => {
           const from = positions[link.source];
           const to = positions[link.target];
           if (!from || !to) return null;
+
           return (
-            <motion.line
+            <line
               key={i}
-              x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-              stroke="hsl(var(--primary))"
-              strokeOpacity={link.strength * 0.5}
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              stroke="#94a3b8"
+              strokeOpacity={0.3}
               strokeWidth={1.5}
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.5 + i * 0.05 }}
             />
           );
         })}
 
         {/* Nodes */}
-        {nodes.map((node, i) => {
+        {nodes.map((node: any) => {
           const pos = positions[node.id];
           if (!pos) return null;
 
           const isIdentity = node.type === "identity";
-          const isBreach = node.type === "breach";
-          const isMatched = node.matched;
-          const r = isIdentity ? 24 : isBreach ? 18 : 14;
-
-          let fill = "hsl(var(--muted))";
-          if (isIdentity) fill = "hsl(var(--primary))";
-          else if (isBreach) fill = "hsl(var(--destructive))";
-          else if (isMatched) fill = "hsl(var(--lavender))";
+          const isAttribute = node.type === "attribute";
 
           return (
-            <motion.g
-              key={node.id}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: 0.3 + i * 0.05 }}
-            >
+            <g key={node.id}>
+              {/* Identity glow */}
               {isIdentity && (
-                <circle cx={pos.x} cy={pos.y} r={r + 6} fill="none" stroke={fill} strokeOpacity={0.2} strokeWidth={2} className="animate-pulse-ring" />
+                <circle
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={28}
+                  fill="#a855f7"
+                  fillOpacity={0.1}
+                  className="animate-pulse"
+                />
               )}
-              <circle cx={pos.x} cy={pos.y} r={r} fill={fill} fillOpacity={isMatched || isIdentity || isBreach ? 0.85 : 0.3} />
+
+              <circle
+                cx={pos.x}
+                cy={pos.y}
+                r={isIdentity ? 18 : isAttribute ? 10 : 12}
+                fill={
+                  isIdentity
+                    ? "#a855f7"
+                    : isAttribute
+                    ? "#fbbf24"
+                    : "#3b82f6"
+                }
+              />
+
               <text
                 x={pos.x}
-                y={pos.y + r + 14}
+                y={pos.y + 28}
                 textAnchor="middle"
-                fill="hsl(var(--muted-foreground))"
-                fontSize={isIdentity ? 11 : 9}
-                fontWeight={isIdentity ? 600 : 400}
-                fontFamily="Inter, sans-serif"
+                fill="white"
+                fontSize="10"
               >
                 {node.label}
               </text>
-              {node.confidence && node.confidence > 0 && (
-                <text
-                  x={pos.x}
-                  y={pos.y + 4}
-                  textAnchor="middle"
-                  fill="hsl(var(--primary-foreground))"
-                  fontSize={8}
-                  fontWeight={500}
-                  fontFamily="JetBrains Mono, monospace"
-                >
-                  {node.confidence}%
-                </text>
-              )}
-            </motion.g>
+            </g>
           );
         })}
       </svg>

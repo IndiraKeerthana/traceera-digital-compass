@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Shield } from "lucide-react";
+import { Search, User, Mail } from "lucide-react";
 
 interface SearchInputProps {
-  onAnalyze: (username: string, name?: string, email?: string) => void;
+  onAnalyze: (data: {
+    username: string;
+    name?: string;
+    email?: string;
+  }) => void;
   isLoading: boolean;
 }
 
@@ -14,68 +18,72 @@ const SearchInput = ({ onAnalyze, isLoading }: SearchInputProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim()) onAnalyze(username.trim(), name.trim() || undefined, email.trim() || undefined);
+
+    if (!username.trim()) return;
+
+    onAnalyze({
+      username: username.trim().toLowerCase(),
+      name: name.trim() || undefined,
+      email: email.trim() || undefined
+    });
   };
 
   return (
-    <motion.div
+    <motion.form
+      onSubmit={handleSubmit}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="flex flex-col items-center gap-6"
+      className="flex flex-col gap-4 w-full max-w-md mx-auto"
     >
-      <div className="flex items-center gap-3">
-        <Shield className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Trace<span className="text-gradient">Era</span>
-        </h1>
+      {/* Username (Required) */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Username (required)"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          disabled={isLoading}
+          className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/30 transition-all"
+        />
       </div>
-      <p className="text-muted-foreground text-sm max-w-md text-center">
-        Simulated digital footprint audit engine. Enter a username to analyze its presence across platforms.
-      </p>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full max-w-md">
-        {/* Username (required) */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username *"
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-            disabled={isLoading}
-          />
-        </div>
 
-        {/* Optional fields row */}
-        <div className="grid grid-cols-2 gap-3">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name (optional)"
-            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-            disabled={isLoading}
-          />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (optional)"
-            className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
-            disabled={isLoading}
-          />
-        </div>
+      {/* Name (Optional) */}
+      <div className="relative">
+        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Full Name (optional)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={isLoading}
+          className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/30 transition-all"
+        />
+      </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || !username.trim()}
-          className="w-full px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? "Analyzing..." : "Analyze"}
-        </button>
-      </form>
-    </motion.div>
+      {/* Email (Optional) */}
+      <div className="relative">
+        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="email"
+          placeholder="Email (optional)"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={isLoading}
+          className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400/30 transition-all"
+        />
+      </div>
+
+      {/* Submit Button */}
+      <button
+        type="submit"
+        disabled={isLoading || !username.trim()}
+        className="py-3 rounded-2xl bg-gradient-to-r from-purple-500/70 to-blue-500/70 text-white font-semibold tracking-wide hover:opacity-90 transition-all shadow-lg disabled:opacity-50"
+      >
+        {isLoading ? "Scanning..." : "Start Analysis"}
+      </button>
+    </motion.form>
   );
 };
 
